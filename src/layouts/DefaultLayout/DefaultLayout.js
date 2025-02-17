@@ -1,4 +1,4 @@
-function DefaultLayout() {
+function DefaultLayout({}) {
     return <div></div>;
 }
 

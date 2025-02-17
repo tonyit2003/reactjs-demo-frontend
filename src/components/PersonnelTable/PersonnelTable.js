@@ -221,4 +221,4 @@ PersonnelTable.propTypes = {
     handleOnClickButtonDelete: PropTypes.func,
 };
 
-export default PersonnelTable;
+export default React.memo(PersonnelTable);

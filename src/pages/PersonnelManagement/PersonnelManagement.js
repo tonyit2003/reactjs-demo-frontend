@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-import { useEffect, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import classNames from "classnames/bind";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -26,7 +26,6 @@ import CustomButton from "~/components/CustomButton";
 import ModalUser from "~/components/ModalUser";
 import PersonnelTable from "~/components/PersonnelTable";
 import ModalConfirm from "~/components/ModalConfirm";
-import { useDebounce } from "~/hooks";
 
 const cx = classNames.bind(style);
 
@@ -68,7 +67,6 @@ function PersonnelManagement() {
     const [openConfirm, setOpenConfirm] = useState(false);
     const [page, setPage] = useState(1);
     const [keyword, setKeyword] = useState("");
-    const debouncedValue = useDebounce(keyword, 500);
     const [userInformation, setUserInformation] = useState({
         id: "",
         email: "",
@@ -77,19 +75,23 @@ function PersonnelManagement() {
         avatar: "",
     });
 
+    const deferredSearch = useDeferredValue(keyword);
+
     useEffect(() => {
-        getUsers();
+        if (localStorage.getItem("token")) {
+            getUsers();
+        }
     }, []);
 
     useEffect(() => {
         handleSearchUsers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedValue]);
+    }, [deferredSearch]);
 
     const handleSearchUsers = async () => {
-        if (debouncedValue) {
+        if (deferredSearch) {
             try {
-                const res = await searchUsers(debouncedValue);
+                const res = await searchUsers(deferredSearch);
                 if (res && res.data) {
                     setListUsers(res.data);
                 }
@@ -105,6 +107,7 @@ function PersonnelManagement() {
     const getUsers = async (page = 1) => {
         try {
             let res = await getPaginationUsers(page);
+            console.log(res);
 
             if (res && res.data) {
                 setListUsers(res.data);
@@ -212,6 +215,17 @@ function PersonnelManagement() {
         }
     };
 
+    const handleOnClickButtonEdit = useCallback((user) => {
+        setOpenModal(true);
+        setAction("edit");
+        setUserInformation(user);
+    }, []);
+
+    const handleOnClickButtonDelete = useCallback((user) => {
+        setOpenConfirm(true);
+        setUserInformation(user);
+    }, []);
+
     return (
         <div className={cx("container")}>
             <div className={`my-3 ${cx("action")}`}>
@@ -242,7 +256,7 @@ function PersonnelManagement() {
                         variant="standard"
                         value={keyword}
                         onChange={(event) => {
-                            setKeyword(event.target.value || "");
+                            setKeyword(event.target.value);
                         }}
                     />
                 </Box>
@@ -252,15 +266,8 @@ function PersonnelManagement() {
                 headCell={headCells}
                 data={listUsers}
                 title="List of personnel"
-                handleOnClickButtonEdit={(user) => {
-                    setOpenModal(true);
-                    setAction("edit");
-                    setUserInformation(user);
-                }}
-                handleOnClickButtonDelete={(user) => {
-                    setOpenConfirm(true);
-                    setUserInformation(user);
-                }}
+                handleOnClickButtonEdit={handleOnClickButtonEdit}
+                handleOnClickButtonDelete={handleOnClickButtonDelete}
             />
             {!keyword && (
                 <Pagination
